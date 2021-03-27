@@ -14,6 +14,7 @@ const projectiles = [];
 const resources = [];
 const amounts = [20, 30, 40];
 const floatingMessages = [];
+let chosenDefender = 1;
 let numberOfResources = 300;
 let frame = 0;
 let enemiesInterval = 600;
@@ -27,7 +28,16 @@ const mouse = {
   y: 10,
   width: 0.1,
   height: 0.1,
+  clicked: false,
 };
+
+canvas.addEventListener('mousedown', () => {
+  mouse.clicked = true;
+});
+
+canvas.addEventListener('mouseup', () => {
+  mouse.clicked = false;
+});
 
 let canvasPosition = canvas.getBoundingClientRect();
 canvas.addEventListener('mousemove', e => {
@@ -128,6 +138,10 @@ const hadleProjectiles = () => {
     };
   };
 };
+const defender1 = new Image();
+defender1.src = './assets/hero_1.png';
+const defender2 = new Image();
+defender2.src = './assets/hero_2.png';
 
 // defenders
 class Defender {
@@ -137,26 +151,59 @@ class Defender {
     this.width = cellSize - cellGap * 2;
     this.height = cellSize - cellGap * 2;;
     this.shooting = false;
+    this.shootNow = false;
     this.health = 100;
     this.projectiles = [];
     this.timer = 0;
+    this.frameX = 0;
+    this.frameY = 0;
+    this.minFrame = 0;
+    this.maxFrame = 16;
+    this.spriteWidth = 194;
+    this.spriteHeight = 194;
+    this.chosenDefender = chosenDefender;
   };
   draw() {
-    ctx.fillStyle = 'blue';
-    ctx.fillRect(this.x, this.y, this.width, this.height);
-    ctx.fillStyle = 'gold';
+    // ctx.fillStyle = 'blue';
+    // ctx.fillRect(this.x, this.y, this.width, this.height);
+    ctx.fillStyle = 'black';
     ctx.font = '20px Orbitron';
     ctx.fillText(Math.floor(this.health), this.x + 15, this.y + 25);
+    if (this.chosenDefender === 1) {
+      ctx.drawImage(defender1, this.frameX * this.spriteWidth, 0, this.spriteWidth, this.spriteHeight, this.x, this.y, this.width, this.height);
+    } else if (this.chosenDefender === 2) {
+      ctx.drawImage(defender2, this.frameX * this.spriteWidth, 0, this.spriteWidth, this.spriteHeight, this.x, this.y, this.width, this.height);
+    };
   };
   update() {
-    if(this.shooting) {
-      this.timer++;
-      if (this.timer % 100 === 0) {
-        projectiles.push(new Projectile(this.x, this.y + 50));
-      };
-    } else {
-      this.timer = 0;
-    }
+    if (frame % 10 === 0) {
+      if (this.frameX < this.maxFrame) this.frameX++;
+      else this.frameX = this.minFrame;
+      if(this.frameX === 15) this.shootNow = true;
+    };
+
+    if (chosenDefender === 1) {
+      if (this.shooting) {
+        this.minFrame = 0;
+        this.maxFrame = 16;
+      } else {
+        this.minFrame = 17;
+        this.maxFrame = 23;
+      }
+    } else if (chosenDefender === 2) {
+      if (this.shooting) {
+        this.minFrame = 13;
+        this.maxFrame = 28;
+      } else {
+        this.minFrame = 0;
+        this.maxFrame = 12;
+      }
+    };
+
+    if (this.shooting && this.shootNow) {
+      projectiles.push(new Projectile(this.x + 70, this.y + 35));
+      this.shootNow = false;
+    };
   };
 };
 
@@ -181,6 +228,53 @@ const handleDefenders = () => {
       };
     };
   };
+};
+
+const card1 = {
+  x: 10,
+  y: 10,
+  width: 70,
+  height: 85,
+  stroke: 'black',
+};
+
+const card2 = {
+  x: 90,
+  y: 10,
+  width: 70,
+  height: 85,
+  stroke: 'black',
+};
+
+const chooseDefender = () => {
+
+  if (collision(mouse, card1) && mouse.clicked) {
+    chosenDefender = 1;
+  } else if (collision(mouse, card2) && mouse.clicked) {
+    chosenDefender = 2;
+  }
+
+  if (chosenDefender === 1) {
+    card1.stroke = 'gold';
+    card2.stroke = 'black';
+  } else if (chosenDefender === 2) {
+    card1.stroke = 'black';
+    card2.stroke = 'gold';
+  } else {
+    card1.stroke = 'black';
+    card2.stroke = 'black';
+  }
+
+  ctx.lineWidth = 1;
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(card1.x, card1.y, card1.width, card1.height);
+  ctx.strokeStyle = card1.stroke;
+  ctx.strokeRect(card1.x, card1.y, card1.width, card1.height);
+  ctx.drawImage(defender1, 0, 0, 194, 194, 0, 5, 194/2, 194/2);
+  ctx.fillRect(card2.x, card2.y, card2.width, card2.height);
+  ctx.strokeStyle = card2.stroke;
+  ctx.strokeRect(card2.x, card2.y, card2.width, card2.height);
+  ctx.drawImage(defender2, 0, 0, 194, 194, 80, 5, 194/2, 194/2);
 };
 
 // floating messages
@@ -242,9 +336,15 @@ class Enemy {
     this.frameX = 0;
     this.frameY = 0;
     this.minFrame = 0;
-    this.maxFrame = 4;
-    this.spriteWidth = 160;
-    this.spriteHeight = 160;
+    if (this.enemyType === enemy1) {
+      this.maxFrame = 4;
+      this.spriteWidth = 160;
+      this.spriteHeight = 160;
+    } else if (this.enemyType === enemy2) {
+      this.maxFrame = 7;
+      this.spriteWidth = 256;
+      this.spriteHeight = 256;
+    }
   }
   update() {
     this.x -= this.movement;
@@ -273,7 +373,7 @@ const handleEnemies = () => {
     if (enemies[i].health <= 0) {
       let gainedResources = enemies[i].maxHealth/10;
       floatingMessages.push(new FloatingMessage('+' + gainedResources, enemies[i].x, enemies[i].y, 30, 'black'));
-      floatingMessages.push(new FloatingMessage('+' + gainedResources, 250, 50, 30, 'gold'));
+      floatingMessages.push(new FloatingMessage('+' + gainedResources,  470, 85, 30, 'gold'));
       numberOfResources += gainedResources;
       score += gainedResources;
       const enemyIndex = enemiesPosition.indexOf(enemies[i].y);
@@ -318,7 +418,7 @@ const handleResources = () => {
     if(resources[i] && mouse.x && mouse.y && collision(resources[i], mouse)) {
       numberOfResources += resources[i].amount;
       floatingMessages.push(new FloatingMessage('+' + resources[i].amount, resources[i].x, resources[i].y, 30, 'black'));
-      floatingMessages.push(new FloatingMessage('+' + resources[i].amount, 250, 50, 30, 'gold'));
+      floatingMessages.push(new FloatingMessage('+' + resources[i].amount, 470, 90, 30, 'gold'));
       resources.splice(i, 1);
       i--;
     };
@@ -329,8 +429,8 @@ const handleResources = () => {
 const handleGameStatus = () => {
   ctx.fillStyle = 'white';
   ctx.font = '30px Orbitron';
-  ctx.fillText('Score: ' + score, 20, 40);
-  ctx.fillText('Resources: ' + numberOfResources, 20, 80);
+  ctx.fillText('Score: ' + score, 180, 40);
+  ctx.fillText('Resources: ' + numberOfResources, 180, 80);
   if (gameOver) {
     ctx.fillStyle = 'black';
     ctx.font = '90px Orbitron';
@@ -354,6 +454,7 @@ const animate = () => {
   handleEnemies();
   hadleProjectiles();
   handleResources();
+  chooseDefender();
   handleGameStatus();
   handleFloatingMessages();
   frame++;
