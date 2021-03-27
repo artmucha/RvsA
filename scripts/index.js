@@ -220,6 +220,14 @@ const handleFloatingMessages = () => {
 };
 
 // enemies
+const enemyTypes = [];
+const enemy1 = new Image();
+enemy1.src = './assets/alien_1.png';
+enemyTypes.push(enemy1);
+const enemy2 = new Image();
+enemy2.src = './assets/alien_2.png';
+enemyTypes.push(enemy2);
+
 class Enemy {
   constructor(verticalPosition) {
     this.x = canvas.width;
@@ -230,16 +238,28 @@ class Enemy {
     this.movement = this.speed;
     this.health = 100;
     this.maxHealth = this.health;
+    this.enemyType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+    this.frameX = 0;
+    this.frameY = 0;
+    this.minFrame = 0;
+    this.maxFrame = 4;
+    this.spriteWidth = 160;
+    this.spriteHeight = 160;
   }
   update() {
     this.x -= this.movement;
+    if(frame % 10 === 0) {
+      if (this.frameX < this.maxFrame) this.frameX++;
+      else this.frameX = this.minFrame;
+    };
   };
   draw() {
-    ctx.fillStyle = 'red';
-    ctx.fillRect(this.x, this.y, this.width, this.height);
+    // ctx.fillStyle = 'red';
+    // ctx.fillRect(this.x, this.y, this.width, this.height);
     ctx.fillStyle = 'black';
     ctx.font = '20px Orbitron';
     ctx.fillText(Math.floor(this.health), this.x + 15, this.y + 25);
+    ctx.drawImage(this.enemyType, this.frameX * this.spriteWidth, 0, this.spriteWidth, this.spriteHeight, this.x, this.y, this.width, this.height)
   };
 };
 
